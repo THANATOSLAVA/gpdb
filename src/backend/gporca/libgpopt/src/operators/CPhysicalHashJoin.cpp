@@ -139,7 +139,7 @@ CPhysicalHashJoin::CreateHashRedistributeRequests(CMemoryPool *mp)
 
 			CDistributionSpecHashed *pdshashedCurrent =
 				GPOS_NEW(mp) CDistributionSpecHashed(
-					pdrgpexprCurrent, true /* fNullsCollocated */, opfamilies);
+					pdrgpexprCurrent, false /* fNullsCollocated */, opfamilies);
 			m_pdrgpdsRedistributeRequests->Append(pdshashedCurrent);
 		}
 	}
@@ -151,7 +151,7 @@ CPhysicalHashJoin::CreateHashRedistributeRequests(CMemoryPool *mp)
 		m_hash_opfamilies->AddRef();
 	}
 	CDistributionSpecHashed *pdshashed = GPOS_NEW(mp) CDistributionSpecHashed(
-		pdrgpexpr, true /* fNullsCollocated */, m_hash_opfamilies);
+		pdrgpexpr, false /* fNullsCollocated */, m_hash_opfamilies);
 	m_pdrgpdsRedistributeRequests->Append(pdshashed);
 }
 
