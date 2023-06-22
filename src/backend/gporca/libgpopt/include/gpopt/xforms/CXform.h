@@ -224,6 +224,8 @@ public:
 		ExfLeftJoin2RightJoin,
 		ExfRightOuterJoin2HashJoin,
 		ExfImplementInnerJoin,
+		ExfPushJoinBelowLeftUnionAll,
+		ExfPushJoinBelowRightUnionAll,
 		ExfInvalid,
 		ExfSentinel = ExfInvalid
 	};
