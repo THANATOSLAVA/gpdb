@@ -33,6 +33,31 @@ CXformPushJoinBelowUnionAll::Exfp(CExpressionHandle &exprhdl) const
 	return CXform::ExfpHigh;
 }
 
+CColRefArray *
+CXformPushJoinBelowUnionAll::CopyWithRemappedColumns(
+	CColRefArray *colref_array_template, CColRefArray *colref_array_from,
+	CColRefArray *colref_array_to, CMemoryPool *mp) const
+{
+	GPOS_ASSERT(colref_array_from->Size() == colref_array_to->Size());
+	CColRefArray *colref_array_copy = GPOS_NEW(mp) CColRefArray(mp);
+
+	for (ULONG ul = 0; ul < colref_array_template->Size(); ul++)
+	{
+		for (ULONG from_ul = 0; from_ul < colref_array_from->Size(); from_ul++)
+		{
+			if ((*colref_array_template)[ul] == (*colref_array_from)[from_ul])
+			{
+				CColRef *colref = (*colref_array_to)[from_ul];
+				colref_array_copy->Append(colref);
+				break;
+			}
+		}
+	}
+	GPOS_ASSERT(colref_array_template->Size() == colref_array_copy->Size());
+
+	return colref_array_copy;
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CXformPushJoinBelowUnionAll::Transform
@@ -112,6 +137,8 @@ CXformPushJoinBelowUnionAll::Transform(CXformContext *pxfctxt,
 		pexprOther->DeriveOutputColumns()->Pdrgpcr(mp);
 	CColRefArray *colref_array_from = GPOS_NEW(mp) CColRefArray(mp);
 
+	CColRefArray *output_columns = pexpr->DeriveOutputColumns()->Pdrgpcr(mp);
+
 	// Iterate through all union all children
 	const ULONG arity = pexprUnionAll->Arity();
 	for (ULONG ul = 0; ul < arity; ul++)
@@ -137,7 +164,7 @@ CXformPushJoinBelowUnionAll::Transform(CXformContext *pxfctxt,
 			// of column remapping
 			colref_array_from->AppendArray(child_colref_array);
 			colref_array_from->AppendArray(other_colref_array);
-			input_columns->Append(colref_array_from);
+			input_columns->Append(output_columns);
 		}
 		else
 		{
@@ -150,7 +177,10 @@ CXformPushJoinBelowUnionAll::Transform(CXformContext *pxfctxt,
 			// remapping
 			colref_array_to->AppendArray(child_colref_array);
 			colref_array_to->AppendArray(other_colref_array_copy);
-			input_columns->Append(colref_array_to);
+
+			CColRefArray *output_columns_copy = CopyWithRemappedColumns(
+				output_columns, colref_array_from, colref_array_to, mp);
+			input_columns->Append(output_columns_copy);
 
 			UlongToColRefMap *colref_mapping =
 				CUtils::PhmulcrMapping(mp, colref_array_from, colref_array_to);
@@ -161,6 +191,7 @@ CXformPushJoinBelowUnionAll::Transform(CXformContext *pxfctxt,
 				mp, colref_mapping, true /*must_exist*/);
 			pexprRemappedOther = pexprOther->PexprCopyWithRemappedColumns(
 				mp, colref_mapping, true);
+			colref_array_to->Release();
 			other_colref_array_copy->Release();
 			colref_mapping->Release();
 		}
@@ -194,9 +225,10 @@ CXformPushJoinBelowUnionAll::Transform(CXformContext *pxfctxt,
 		}
 		join_array->Append(join_expr);
 	}
+	colref_array_from->Release();
 	other_colref_array->Release();
 
-	CColRefArray *output_columns = pexpr->DeriveOutputColumns()->Pdrgpcr(mp);
+	output_columns->AddRef();
 	CExpression *pexprAlt = GPOS_NEW(mp) CExpression(
 		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, output_columns, input_columns),
 		join_array);

@@ -45,6 +45,11 @@ public:
 	// compute xform promise for a given expression handle
 	virtual EXformPromise Exfp(CExpressionHandle &exprhdl) const;
 
+	CColRefArray *CopyWithRemappedColumns(CColRefArray *colref_array_template,
+										  CColRefArray *colref_array_from,
+										  CColRefArray *colref_array_to,
+										  CMemoryPool *mp) const;
+
 	// actual transform
 	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
 				   CExpression *pexpr) const;
