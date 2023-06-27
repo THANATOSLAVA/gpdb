@@ -3223,7 +3223,7 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_NOT_IN_SAMPLE
 		},
 		&optimizer_enable_push_join_below_union_all,
-		true,
+		false,
 		NULL, NULL, NULL
 	},
 
