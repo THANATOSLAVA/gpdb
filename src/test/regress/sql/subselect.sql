@@ -972,3 +972,20 @@ with x as (select * from subselect_tbl)
 select * from x for update;
 
 set gp_cte_sharing to off;
+
+-- Ensure that both planners produce valid plans for the query with the nested
+-- SubLink, and this SubLink is under aggregation. ORCA shouldn't fall back due
+-- to missing variable entry as a result of incorrect query normalization. ORCA
+-- should correctly process args of the aggregation during normalization.
+-- start_ignore
+drop table if exists t;
+-- end_ignore
+create table t (i int, j int) distributed by (i);
+insert into t values (1, 2);
+
+explain (verbose, costs off)
+select (select max((select t.i))) from t;
+
+select (select max((select t.i))) from t;
+
+drop table t;
