@@ -28,6 +28,9 @@ private:
 
 	BOOL m_ignore_broadcast_threshold;
 
+	// should allow this replicated spec to be enforced?
+	BOOL m_fAllowEnforced{true};
+
 public:
 	CDistributionSpecReplicated(const CDistributionSpecReplicated &) = delete;
 
@@ -55,6 +58,20 @@ public:
 					replicated_type == CDistributionSpec::EdtStrictReplicated);
 	}
 
+	// ctor
+	CDistributionSpecReplicated(
+		CDistributionSpec::EDistributionType replicated_type,
+		BOOL ignore_broadcast_threshold, BOOL fAllowEnforced)
+		: m_replicated(replicated_type),
+		  m_ignore_broadcast_threshold(ignore_broadcast_threshold),
+		  m_fAllowEnforced(fAllowEnforced)
+	{
+		GPOS_ASSERT(replicated_type == CDistributionSpec::EdtReplicated ||
+					replicated_type ==
+						CDistributionSpec::EdtTaintedReplicated ||
+					replicated_type == CDistributionSpec::EdtStrictReplicated);
+	}
+
 	// accessor
 	EDistributionType
 	Edt() const override
@@ -75,6 +92,13 @@ public:
 	Edpt() const override
 	{
 		return EdptNonPartitioned;
+	}
+
+	// should allow this replicated spec to be enforced?
+	BOOL
+	FAllowEnforced() const
+	{
+		return m_fAllowEnforced;
 	}
 
 	// print
