@@ -29,7 +29,7 @@
 using namespace gpopt;
 
 // number of non-redistribute requests created by hash join
-#define GPOPT_NON_HASH_DIST_REQUESTS 3
+#define GPOPT_NON_HASH_DIST_REQUESTS 4
 
 // maximum number of redistribute requests on single hash join keys
 #define GPOPT_MAX_HASH_DIST_REQUESTS 6
@@ -503,8 +503,7 @@ CPhysicalHashJoin::PdsRequiredOuterReplicated(
 	EChildExecOrder eceo = Eceo();
 	if (EceoLeftToRight == eceo)
 	{
-		// if optimization order is left to right, fall-back to
-		// implementation of parent Join operator
+		// if optimization order is left to right, fall-back to implementation of parent Join operator
 		CEnfdDistribution *ped = CPhysicalJoin::Ped(
 			mp, exprhdl, prppInput, child_index, pdrgpdpCtxt, ulOptReq);
 		CDistributionSpec *pds = ped->PdsRequired();
@@ -516,35 +515,26 @@ CPhysicalHashJoin::PdsRequiredOuterReplicated(
 
 	if (1 == child_index)
 	{
-		// require inner child to be non-singleton
-		return GPOS_NEW(mp) CDistributionSpecNonSingleton();
+		return GPOS_NEW(mp) CDistributionSpecNonReplicated();
 	}
+
 	GPOS_ASSERT(0 == child_index);
 
-	// require a matching distribution from outer child
-	CDistributionSpec *pdsInner =
-		CDrvdPropPlan::Pdpplan((*pdrgpdpCtxt)[0])->Pds();
-	GPOS_ASSERT(nullptr != pdsInner);
+	// After requesting the inner child to satisfy non-replicated,
+	// the inner child may deliver the following specs:
+	//
+	// 1. hash -> hash
+	// 2. random -> random
+	// 3. singleton -> singleton
+	// 4. universal -> universal
+	// 5. replicated -> singleton
+	//
+	// We need to check the duplication hazard before requesting
+	// the outer child to be replicated
 
-	if (CDistributionSpec::EdtUniversal == pdsInner->Edt())
-	{
-		// first child is universal, request second child to execute on
-		// a single host to avoid duplicates
-		return GPOS_NEW(mp) CDistributionSpecSingleton();
-	}
-
-	if (CDistributionSpec::EdtStrictReplicated == pdsInner->Edt())
-	{
-		// first child is StrictReplicated, request second child to
-		// execute non-singleton
-		return GPOS_NEW(mp) CDistributionSpecNonSingleton();
-	}
-
-	// otherwise, request second child to deliver Replicated distribution
-	GPOS_ASSERT(CDistributionSpec::EdtRandom == pdsInner->Edt() ||
-				CDistributionSpec::EdtHashed == pdsInner->Edt());
-	return GPOS_NEW(mp)
-		CDistributionSpecReplicated(CDistributionSpec::EdtReplicated, false, false);
+	// require outer child to be non-replicated (non-enforceable)
+	return GPOS_NEW(mp) CDistributionSpecReplicated(
+		CDistributionSpec::EdtReplicated, false, false);
 }
 
 //---------------------------------------------------------------------------
@@ -873,7 +863,18 @@ CPhysicalHashJoin::Ped(CMemoryPool *mp, CExpressionHandle &exprhdl,
 		return GPOS_NEW(mp) CEnfdDistribution(pds, dmatch);
 	}
 
-	GPOS_ASSERT(ulOptReq == ulHashDistributeRequests + 2);
+	if (ulOptReq == ulHashDistributeRequests + 2)
+	{
+		// request N+3 is (non-singleton, replicate)
+
+		CDistributionSpec *pds =
+			PdsRequiredOuterReplicated(mp, exprhdl, pdsInput, child_index,
+									   pdrgpdpCtxt, ulOptReq, prppInput);
+		return GPOS_NEW(mp)
+			CEnfdDistribution(pds, CEnfdDistribution::EdmSatisfy);
+	}
+
+	GPOS_ASSERT(ulOptReq == ulHashDistributeRequests + 3);
 
 	// requests N+3 is (singleton, singleton)
 

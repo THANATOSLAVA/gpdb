@@ -86,12 +86,6 @@ public:
 		return dynamic_cast<CPhysicalInnerHashJoin *>(pop);
 	}
 
-	/// compute required distribution of the n-th child
-	CEnfdDistribution *Ped(CMemoryPool *mp, CExpressionHandle &exprhdl,
-						   CReqdPropPlan *prppInput, ULONG child_index,
-						   CDrvdPropArray *pdrgpdpCtxt,
-						   ULONG ulOptReq) override;
-
 	// derive distribution
 	CDistributionSpec *PdsDerive(CMemoryPool *mp,
 								 CExpressionHandle &exprhdl) const override;
