@@ -150,15 +150,13 @@ CEnfdDistribution::Epet(CExpressionHandle &exprhdl, CPhysical *popPhysical,
 		// and the allowed enforcement is disabled in the request,
 		// we don't enforce replicated distribution
 
-		/*
 		if (CDistributionSpec::EdtReplicated == m_pds->Edt() &&
 			!(CDistributionSpecReplicated::PdsConvert(m_pds)
 				  ->FAllowEnforced()) &&
-			!(CDistributionSpec::EdtReplicated == pds->Edt()))
+			CDistributionSpec::EdtStrictReplicated != pds->Edt())
 		{
 			return EpetProhibited;
 		}
-		*/
 
 		// N.B.: subtlety ahead:
 		// We used to do the following check in CPhysicalMotion::FValidContext
