@@ -14,6 +14,7 @@
 #include "gpos/base.h"
 
 #include "gpopt/base/CDistributionSpecAny.h"
+#include "gpopt/base/CDistributionSpecNonReplicated.h"
 #include "gpopt/base/CDistributionSpecNonSingleton.h"
 #include "gpopt/base/CDistributionSpecReplicated.h"
 #include "gpopt/base/CPartInfo.h"
@@ -133,8 +134,7 @@ CPhysicalFilter::PdsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	{
 		// this situation arises when we have Filter inside inlined CTE,
 		// in this case, we need to push down non-singleton with not allowed replicated through Filter
-		pdsRequired->AddRef();
-		return pdsRequired;
+		return GPOS_NEW(mp) CDistributionSpecNonReplicated();
 	}
 
 	return CPhysical::PdsUnary(mp, exprhdl, pdsRequired, child_index, ulOptReq);
