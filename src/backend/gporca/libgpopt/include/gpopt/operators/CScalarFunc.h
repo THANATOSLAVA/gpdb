@@ -60,6 +60,9 @@ protected:
 	//	combined into an array last argument
 	BOOL m_funcvariadic;
 
+	// is the function a sirv
+	BOOL m_sirv;
+
 private:
 public:
 	CScalarFunc(const CScalarFunc &) = delete;
@@ -69,7 +72,7 @@ public:
 	// ctor
 	CScalarFunc(CMemoryPool *mp, IMDId *mdid_func, IMDId *mdid_return_type,
 				INT return_type_modifier, const CWStringConst *pstrFunc,
-				BOOL funcvariadic);
+				BOOL funcvariadic, BOOL sirv);
 
 	// dtor
 	~CScalarFunc() override;
@@ -158,6 +161,8 @@ public:
 	// Is variadic flag set
 	BOOL IsFuncVariadic() const;
 
+	// Is function SIRV
+	BOOL IsSIRV() const;
 
 };	// class CScalarFunc
 

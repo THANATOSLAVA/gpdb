@@ -31,13 +31,14 @@ using namespace gpdxl;
 CDXLScalarFuncExpr::CDXLScalarFuncExpr(CMemoryPool *mp, IMDId *mdid_func,
 									   IMDId *mdid_return_type,
 									   INT return_type_modifier, BOOL fRetSet,
-									   BOOL funcvariadic)
+									   BOOL funcvariadic, BOOL is_sirv)
 	: CDXLScalar(mp),
 	  m_func_mdid(mdid_func),
 	  m_return_type_mdid(mdid_return_type),
 	  m_return_type_modifier(return_type_modifier),
 	  m_returns_set(fRetSet),
-	  m_funcvariadic(funcvariadic)
+	  m_funcvariadic(funcvariadic),
+	  m_sirv(is_sirv)
 {
 	GPOS_ASSERT(m_func_mdid->IsValid());
 	GPOS_ASSERT(m_return_type_mdid->IsValid());
@@ -147,6 +148,11 @@ CDXLScalarFuncExpr::IsFuncVariadic() const
 	return m_funcvariadic;
 }
 
+BOOL
+CDXLScalarFuncExpr::IsSIRV() const
+{
+	return m_sirv;
+}
 //---------------------------------------------------------------------------
 //	@function:
 //		CDXLScalarFuncExpr::SerializeToDXL
@@ -171,6 +177,9 @@ CDXLScalarFuncExpr::SerializeToDXL(CXMLSerializer *xml_serializer,
 								  CDXLTokens::GetDXLTokenStr(EdxltokenTypeId));
 	xml_serializer->AddAttribute(
 		CDXLTokens::GetDXLTokenStr(EdxltokenFuncVariadic), m_funcvariadic);
+
+	xml_serializer->AddAttribute(CDXLTokens::GetDXLTokenStr(EdxltokenSIRV),
+								 m_sirv);
 
 	if (default_type_modifier != TypeModifier())
 	{

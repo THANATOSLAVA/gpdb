@@ -212,9 +212,6 @@ CTranslatorQueryToDXL::CTranslatorQueryToDXL(
 	// check if the query has any unsupported node types
 	CheckUnsupportedNodeTypes(query);
 
-	// check if the query has SIRV functions in the targetlist without a FROM clause
-	CheckSirvFuncsWithoutFromClause(query);
-
 	// first normalize the query
 	m_query =
 		CQueryMutators::NormalizeQuery(m_mp, m_md_accessor, query, query_level);
@@ -322,34 +319,6 @@ CTranslatorQueryToDXL::CheckUnsupportedNodeTypes(Query *query)
 	{
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
 				   GPOS_WSZ_LIT("Non-default collation"));
-	}
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorQueryToDXL::CheckSirvFuncsWithoutFromClause
-//
-//	@doc:
-//		Check for SIRV functions in the target list without a FROM clause, and
-//		throw an exception when found
-//
-//---------------------------------------------------------------------------
-void
-CTranslatorQueryToDXL::CheckSirvFuncsWithoutFromClause(Query *query)
-{
-	// if there is a FROM clause or if target list is empty, look no further
-	if ((nullptr != query->jointree &&
-		 0 < gpdb::ListLength(query->jointree->fromlist)) ||
-		NIL == query->targetList)
-	{
-		return;
-	}
-
-	// see if we have SIRV functions in the target list
-	if (HasSirvFunctions((Node *) query->targetList))
-	{
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
-				   GPOS_WSZ_LIT("SIRV functions"));
 	}
 }
 
@@ -3976,13 +3945,6 @@ CTranslatorQueryToDXL::TranslateTVFToDXL(const RangeTblEntry *rte,
 	GPOS_ASSERT(IsA(rtfunc->funcexpr, FuncExpr));
 
 	FuncExpr *funcexpr = (FuncExpr *) rtfunc->funcexpr;
-
-	// check if arguments contain SIRV functions
-	if (NIL != funcexpr->args && HasSirvFunctions((Node *) funcexpr->args))
-	{
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
-				   GPOS_WSZ_LIT("SIRV functions"));
-	}
 
 	ListCell *lc = nullptr;
 	ForEach(lc, funcexpr->args)

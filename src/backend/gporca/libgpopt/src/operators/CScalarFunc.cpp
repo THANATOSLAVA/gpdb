@@ -41,7 +41,8 @@ CScalarFunc::CScalarFunc(CMemoryPool *mp)
 	  m_efs(IMDFunction::EfsSentinel),
 	  m_returns_set(false),
 	  m_returns_null_on_null_input(false),
-	  m_fBoolReturnType(false)
+	  m_fBoolReturnType(false),
+	  m_sirv(false)
 {
 }
 
@@ -55,7 +56,8 @@ CScalarFunc::CScalarFunc(CMemoryPool *mp)
 //---------------------------------------------------------------------------
 CScalarFunc::CScalarFunc(CMemoryPool *mp, IMDId *mdid_func,
 						 IMDId *mdid_return_type, INT return_type_modifier,
-						 const CWStringConst *pstrFunc, BOOL funcvariadic)
+						 const CWStringConst *pstrFunc, BOOL funcvariadic,
+						 BOOL sirv)
 	: CScalar(mp),
 	  m_func_mdid(mdid_func),
 	  m_return_type_mdid(mdid_return_type),
@@ -64,7 +66,8 @@ CScalarFunc::CScalarFunc(CMemoryPool *mp, IMDId *mdid_func,
 	  m_returns_set(false),
 	  m_returns_null_on_null_input(false),
 	  m_fBoolReturnType(false),
-	  m_funcvariadic(funcvariadic)
+	  m_funcvariadic(funcvariadic),
+	  m_sirv(sirv)
 {
 	GPOS_ASSERT(mdid_func->IsValid());
 	GPOS_ASSERT(mdid_return_type->IsValid());
@@ -255,5 +258,9 @@ CScalarFunc::IsFuncVariadic() const
 	return m_funcvariadic;
 }
 
-
+BOOL
+CScalarFunc::IsSIRV() const
+{
+	return m_sirv;
+}
 // EOF

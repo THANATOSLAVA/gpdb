@@ -5716,10 +5716,11 @@ CTranslatorExprToDXL::PdxlnScFuncExpr(CExpression *pexprFunc)
 
 	const IMDFunction *pmdfunc = m_pmda->RetrieveFunc(mdid_func);
 
-	CDXLNode *pdxlnFuncExpr = GPOS_NEW(m_mp) CDXLNode(
-		m_mp, GPOS_NEW(m_mp) CDXLScalarFuncExpr(
-				  m_mp, mdid_func, mdid_return_type, popScFunc->TypeModifier(),
-				  pmdfunc->ReturnsSet(), popScFunc->IsFuncVariadic()));
+	CDXLNode *pdxlnFuncExpr = GPOS_NEW(m_mp)
+		CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarFuncExpr(
+						   m_mp, mdid_func, mdid_return_type,
+						   popScFunc->TypeModifier(), pmdfunc->ReturnsSet(),
+						   popScFunc->IsFuncVariadic(), popScFunc->IsSIRV()));
 
 	// translate children
 	TranslateScalarChildren(pexprFunc, pdxlnFuncExpr);

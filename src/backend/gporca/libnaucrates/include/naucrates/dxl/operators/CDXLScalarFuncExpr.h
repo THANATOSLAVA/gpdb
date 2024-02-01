@@ -48,13 +48,16 @@ private:
 	//  combined into an array last argument
 	BOOL m_funcvariadic;
 
+	// is the function a sirv
+	BOOL m_sirv;
+
 public:
 	CDXLScalarFuncExpr(const CDXLScalarFuncExpr &) = delete;
 
 	// ctor
 	CDXLScalarFuncExpr(CMemoryPool *mp, IMDId *mdid_func,
 					   IMDId *mdid_return_type, INT return_type_modifier,
-					   BOOL returns_set, BOOL funcvariadic);
+					   BOOL returns_set, BOOL funcvariadic, BOOL is_sirv);
 
 	//dtor
 	~CDXLScalarFuncExpr() override;
@@ -78,6 +81,9 @@ public:
 
 	// Is the variadic flag set
 	BOOL IsFuncVariadic() const;
+
+	// Is function SIRV
+	BOOL IsSIRV() const;
 
 	// serialize operator in DXL format
 	void SerializeToDXL(CXMLSerializer *xml_serializer,

@@ -3834,9 +3834,9 @@ CUtils::PexprFuncElemExpr(CMemoryPool *mp, CMDAccessor *md_accessor,
 		CWStringConst(mp, (cast_func->Mdname().GetMDName())->GetBuffer());
 	mdid_func->AddRef();
 	cast_func->GetResultTypeMdid()->AddRef();
-	CScalarFunc *popCastScalarFunc =
-		GPOS_NEW(mp) CScalarFunc(mp, mdid_func, cast_func->GetResultTypeMdid(),
-								 typmod, pstrFunc, false /* funcvariadic */);
+	CScalarFunc *popCastScalarFunc = GPOS_NEW(mp)
+		CScalarFunc(mp, mdid_func, cast_func->GetResultTypeMdid(), typmod,
+					pstrFunc, false /* funcvariadic */, false /* sirv */);
 	mdid_elem_type->AddRef();
 	CExpression *pexprCaseTest = GPOS_NEW(mp)
 		CExpression(mp, GPOS_NEW(mp) CScalarCaseTest(mp, mdid_elem_type));

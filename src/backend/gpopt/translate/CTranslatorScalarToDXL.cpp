@@ -1377,19 +1377,9 @@ CTranslatorScalarToDXL::TranslateFuncExprToDXL(
 {
 	GPOS_ASSERT(IsA(expr, FuncExpr));
 	const FuncExpr *func_expr = (FuncExpr *) expr;
-	int32 type_modifier = gpdb::ExprTypeMod((Node *) expr);
 
 	CMDIdGPDB *mdid_func =
 		GPOS_NEW(m_mp) CMDIdGPDB(IMDId::EmdidGeneral, func_expr->funcid);
-
-	// create the DXL node holding the scalar funcexpr.
-	CDXLNode *dxlnode = GPOS_NEW(m_mp) CDXLNode(
-		m_mp,
-		GPOS_NEW(m_mp) CDXLScalarFuncExpr(
-			m_mp, mdid_func,
-			GPOS_NEW(m_mp)
-				CMDIdGPDB(IMDId::EmdidGeneral, func_expr->funcresulttype),
-			type_modifier, func_expr->funcretset, func_expr->funcvariadic));
 
 	const IMDFunction *md_func = m_md_accessor->RetrieveFunc(mdid_func);
 	if (IMDFunction::EfsVolatile == md_func->GetFuncStability())
@@ -1407,6 +1397,19 @@ CTranslatorScalarToDXL::TranslateFuncExprToDXL(
 			}
 		}
 	}
+
+	int32 type_modifier = gpdb::ExprTypeMod((Node *) expr);
+	BOOL is_sirv =
+		CTranslatorUtils::IsSirvFunc(m_mp, m_md_accessor, func_expr->funcid);
+
+	// create the DXL node holding the scalar funcexpr.
+	CDXLNode *dxlnode = GPOS_NEW(m_mp) CDXLNode(
+		m_mp, GPOS_NEW(m_mp) CDXLScalarFuncExpr(
+				  m_mp, mdid_func,
+				  GPOS_NEW(m_mp)
+					  CMDIdGPDB(IMDId::EmdidGeneral, func_expr->funcresulttype),
+				  type_modifier, func_expr->funcretset, func_expr->funcvariadic,
+				  is_sirv));
 
 	TranslateScalarChildren(dxlnode, func_expr->args, var_colid_mapping);
 
