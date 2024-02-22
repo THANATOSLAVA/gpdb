@@ -23,8 +23,12 @@
 #include "gpopt/operators/CLogicalIndexGet.h"
 #include "gpopt/operators/CLogicalIndexOnlyGet.h"
 #include "gpopt/operators/CLogicalJoin.h"
+#include "gpopt/operators/CLogicalProject.h"
 #include "gpopt/operators/CPhysicalJoin.h"
 #include "gpopt/operators/CPredicateUtils.h"
+#include "gpopt/operators/CScalarCast.h"
+#include "gpopt/operators/CScalarFunc.h"
+#include "gpopt/operators/CScalarProjectList.h"
 #include "gpopt/xforms/CXform.h"
 #include "naucrates/md/IMDIndex.h"
 #include "naucrates/md/IMDScalarOp.h"
@@ -131,6 +135,10 @@ private:
 	static BOOL FXformInArray(CXform::EXformId exfid,
 							  const CXform::EXformId rgXforms[],
 							  ULONG ulXforms);
+
+	static CExpressionArray *ConvertScalarToProjElem(
+		CMemoryPool *mp, CExpressionArray *scalar_exprs);
+
 
 #ifdef GPOS_DEBUG
 	// check whether the given join type is swapable
@@ -672,8 +680,6 @@ CXformUtils::ImplementHashJoin(CXformContext *pxfctxt, CXformResult *pxfres,
 	LookupJoinKeys(mp, pexpr, &pdrgpexprOuter, &pdrgpexprInner,
 				   &join_opfamilies);
 
-	CExpression *pexprOuter = (*pexpr)[0];
-	CExpression *pexprInner = (*pexpr)[1];
 	CExpression *pexprScalar = (*pexpr)[2];
 	CExpressionArray *pdrgpexpr =
 		CCastUtils::PdrgpexprCastEquality(mp, pexprScalar);
@@ -713,6 +719,9 @@ CXformUtils::ImplementHashJoin(CXformContext *pxfctxt, CXformResult *pxfres,
 		pdrgpexpr->Release();
 		return;
 	}
+
+	CExpression *pexprOuter = (*pexpr)[0];
+	CExpression *pexprInner = (*pexpr)[1];
 
 	// split the predicate into arrays of conjuncts based on if they are
 	// output from inner or outer child
@@ -841,6 +850,8 @@ CXformUtils::ImplementMergeJoin(CXformContext *pxfctxt, CXformResult *pxfres,
 	CExpression *pexprOuter = (*pexpr)[0];
 	CExpression *pexprInner = (*pexpr)[1];
 	CExpression *pexprScalar = (*pexpr)[2];
+	CExpressionArray *pdrgpexpr =
+		CCastUtils::PdrgpexprCastEquality(mp, pexprScalar);
 
 	// split the predicate into arrays of conjuncts based on if they are
 	// output from inner or outer child
@@ -852,8 +863,6 @@ CXformUtils::ImplementMergeJoin(CXformContext *pxfctxt, CXformResult *pxfres,
 		join_opfamilies = GPOS_NEW(mp) IMdIdArray(mp);
 	}
 
-	CExpressionArray *pdrgpexpr =
-		CPredicateUtils::PdrgpexprConjuncts(mp, pexprScalar);
 	ULONG ulPreds = pdrgpexpr->Size();
 	for (ULONG ul = 0; ul < ulPreds; ul++)
 	{
@@ -899,23 +908,54 @@ CXformUtils::ImplementMergeJoin(CXformContext *pxfctxt, CXformResult *pxfres,
 	GPOS_ASSERT_IMP(GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution),
 					pdrgpexprInner->Size() == join_opfamilies->Size());
 
+	CExpressionArray *outerPredsProjElems =
+		ConvertScalarToProjElem(mp, pdrgpexprOuter);
+	CExpressionArray *innerPredsProjElems =
+		ConvertScalarToProjElem(mp, pdrgpexprInner);
+
+	CExpressionArray *outerPredsIdents = GPOS_NEW(mp) CExpressionArray(mp);
+	CExpressionArray *innerPredsIdents = GPOS_NEW(mp) CExpressionArray(mp);
+	CExpressionArray *predCmps = GPOS_NEW(mp) CExpressionArray(mp);
+
+	for (ULONG ul = 0; ul < ulPreds; ul++) {
+		CExpression *outerPredElem = (*outerPredsProjElems)[ul];
+		CColRef *outer_colref = CScalarProjectElement::PopConvert(outerPredElem->Pop())->Pcr();
+		CExpression *outerPredIdent = CUtils::PexprScalarIdent(mp, outer_colref);
+		outerPredsIdents->Append(outerPredIdent);
+
+		CExpression *innerPredElem = (*innerPredsProjElems)[ul];
+		CColRef *inner_colref = CScalarProjectElement::PopConvert(innerPredElem->Pop())->Pcr();
+		CExpression *innerPredIdent = CUtils::PexprScalarIdent(mp, inner_colref);
+		innerPredsIdents->Append(innerPredIdent);
+
+		CExpression *predCmp = CUtils::PexprScalarEqCmp(mp, outer_colref, inner_colref);
+		predCmps->Append(predCmp);
+	}
+
+	CExpression *outerPredsProjList = GPOS_NEW(mp) CExpression(
+		mp, GPOS_NEW(mp) CScalarProjectList(mp), outerPredsProjElems);
+	CExpression *innerPredsProjList = GPOS_NEW(mp) CExpression(
+		mp, GPOS_NEW(mp) CScalarProjectList(mp), innerPredsProjElems);
+	CExpression *outerLogicalProj = GPOS_NEW(mp) CExpression(
+		mp, GPOS_NEW(mp) CLogicalProject(mp), pexprOuter, outerPredsProjList);
+	CExpression *innerLogicalProj = GPOS_NEW(mp) CExpression(
+		mp, GPOS_NEW(mp) CLogicalProject(mp), pexprInner, innerPredsProjList);
+
 	// construct new MergeJoin expression using explicit casting, if needed
 	pexpr->Pop()->AddRef();
-	pexprOuter->AddRef();
-	pexprInner->AddRef();
 	CExpression *pexprResult = GPOS_NEW(mp)
-		CExpression(mp, pexpr->Pop(), pexprOuter, pexprInner,
-					CPredicateUtils::PexprConjunction(mp, pdrgpexpr));
+		CExpression(mp, pexpr->Pop(), outerLogicalProj, innerLogicalProj,
+					CPredicateUtils::PexprConjunction(mp, predCmps));
 
 	// cache hash join keys on scalar child group
-	CacheJoinKeys(pexprResult, pdrgpexprOuter, pdrgpexprInner, join_opfamilies);
+	CacheJoinKeys(pexprResult, outerPredsIdents, innerPredsIdents, join_opfamilies);
 
 	// Add an alternative only if we found at least one merge-joinable predicate
 	if (0 != pdrgpexprOuter->Size())
 	{
 		AddHashOrMergeJoinAlternative<T>(
-			mp, pexprResult, pdrgpexprOuter, pdrgpexprInner, join_opfamilies,
-			pxfres, true /*is_hash_join_null_aware*/);
+			mp, pexprResult, outerPredsProjElems, innerPredsProjElems,
+			join_opfamilies, pxfres, true /*is_hash_join_null_aware*/);
 	}
 	else
 	{

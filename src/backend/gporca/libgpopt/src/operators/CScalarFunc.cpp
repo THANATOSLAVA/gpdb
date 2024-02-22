@@ -41,7 +41,8 @@ CScalarFunc::CScalarFunc(CMemoryPool *mp)
 	  m_efs(IMDFunction::EfsSentinel),
 	  m_returns_set(false),
 	  m_returns_null_on_null_input(false),
-	  m_fBoolReturnType(false)
+	  m_fBoolReturnType(false),
+	  m_pcr(nullptr)
 {
 }
 
@@ -64,7 +65,8 @@ CScalarFunc::CScalarFunc(CMemoryPool *mp, IMDId *mdid_func,
 	  m_returns_set(false),
 	  m_returns_null_on_null_input(false),
 	  m_fBoolReturnType(false),
-	  m_funcvariadic(funcvariadic)
+	  m_funcvariadic(funcvariadic),
+	  m_pcr(nullptr)
 {
 	GPOS_ASSERT(mdid_func->IsValid());
 	GPOS_ASSERT(mdid_return_type->IsValid());

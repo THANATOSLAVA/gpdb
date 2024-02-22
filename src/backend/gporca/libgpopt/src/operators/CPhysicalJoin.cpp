@@ -673,23 +673,13 @@ CPhysicalJoin::FMergeJoinCompatible(
 	GPOS_ASSERT(nullptr != pexprInner);
 	GPOS_ASSERT(pexprOuter != pexprInner);
 
-	CExpression *pexprPredOuter = nullptr;
-	CExpression *pexprPredInner = nullptr;
-	IMDId *mdid_scop = nullptr;
-
-	// Only merge join between ScalarIdents of the same types is currently supported
-	if (CPredicateUtils::FEqIdentsOfSameType(pexprPred))
-	{
-		pexprPredOuter = (*pexprPred)[0];
-		pexprPredInner = (*pexprPred)[1];
-		mdid_scop = CScalarCmp::PopConvert(pexprPred->Pop())->MdIdOp();
-		GPOS_ASSERT(CUtils::FScalarIdent(pexprPredOuter));
-		GPOS_ASSERT(CUtils::FScalarIdent(pexprPredInner));
-	}
-	else
+	if (!CPredicateUtils::IsEqualityOp(pexprPred))
 	{
 		return false;
 	}
+
+	CExpression *pexprPredOuter = (*pexprPred)[0];
+	CExpression *pexprPredInner = (*pexprPred)[1];
 
 	IMDId *pmdidTypeOuter =
 		CScalar::PopConvert(pexprPredOuter->Pop())->MdidType();
@@ -700,20 +690,12 @@ CPhysicalJoin::FMergeJoinCompatible(
 
 	if (GPOS_FTRACE(EopttraceConsiderOpfamiliesForDistribution))
 	{
-		const IMDScalarOp *op = mda->RetrieveScOp(mdid_scop);
-		const IMDType *left_type = mda->RetrieveType(pmdidTypeOuter);
-		const IMDType *right_type = mda->RetrieveType(pmdidTypeInner);
-
 		// MJ sends Sort requests whose btree opclass must match that of the join
-		// clause. ORCA currently doesn't have support to retrive the information
-		// to send such requests.
-		// So, check that hash family used for distribution matches the default for
-		// its operands' types. This must match the operator using in
-		// CPhysicalFullMergeJoin::PosRequired().
-		if (!CUtils::Equals(op->HashOpfamilyMdid(),
-							left_type->GetDistrOpfamilyMdid()) ||
-			!CUtils::Equals(op->HashOpfamilyMdid(),
-							right_type->GetDistrOpfamilyMdid()))
+		// clause.
+		if (!CPredicateUtils::FOpInOpfamily(pmdidTypeInner, pexprPred,
+											IMDIndex::EmdindBtree) ||
+			!CPredicateUtils::FOpInOpfamily(pmdidTypeOuter, pexprPred,
+											IMDIndex::EmdindBtree))
 		{
 			return false;
 		}

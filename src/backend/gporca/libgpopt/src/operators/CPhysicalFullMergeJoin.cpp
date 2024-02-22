@@ -19,6 +19,7 @@
 #include "gpopt/base/CUtils.h"
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CPredicateUtils.h"
+#include "gpopt/operators/CScalarFunc.h"
 #include "gpopt/operators/CScalarIdent.h"
 
 using namespace gpopt;
@@ -162,8 +163,17 @@ CPhysicalFullMergeJoin::PosRequired(CMemoryPool *mp,
 	{
 		CExpression *expr = (*clauses)[ul];
 
-		GPOS_ASSERT(CUtils::FScalarIdent(expr));
-		const CColRef *colref = CCastUtils::PcrExtractFromScIdOrCastScId(expr);
+		GPOS_ASSERT(COperator::EopScalarProjectElement == expr->Pop()->Eopid());
+
+		const CColRef *colref = nullptr;
+		if (CScalarIdent::FFuncScId(expr))
+		{
+			colref = CScalarFunc::PopConvert(expr->Pop())->Pcr();
+		}
+		else
+		{
+			colref = CCastUtils::PcrExtractFromScIdOrCastScId(expr);
+		}
 
 		// Make sure that the corresponding properties (mergeStrategies, mergeNullsFirst)
 		// in CTranslatorDXLToPlStmt::TranslateDXLMergeJoin() match.

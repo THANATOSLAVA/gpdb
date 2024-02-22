@@ -1645,6 +1645,52 @@ CXformUtils::FXformInArray(CXform::EXformId exfid,
 	return false;
 }
 
+CExpressionArray *
+CXformUtils::ConvertScalarToProjElem(CMemoryPool *mp,
+									 CExpressionArray *scalar_exprs)
+{
+	CExpressionArray *proj_elems = GPOS_NEW(mp) CExpressionArray(mp);
+
+	ULONG ulExprs = scalar_exprs->Size();
+	for (ULONG ul = 0; ul < ulExprs; ul++)
+	{
+		CExpression *scalar_expr = (*scalar_exprs)[ul];
+		CColRef *colref = nullptr;
+
+		CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+		CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+
+		if (CScalarIdent::FFuncScId(scalar_expr))
+		{
+			colref = col_factory->PcrCreate(
+				md_accessor->RetrieveType(
+					CScalarFunc::PopConvert(scalar_expr->Pop())->MdidType()),
+				CScalarFunc::PopConvert(scalar_expr->Pop())->TypeModifier());
+		}
+		else if (CScalarIdent::FCastedScId(scalar_expr))
+		{
+			colref = col_factory->PcrCreate(
+				md_accessor->RetrieveType(
+					CScalarCast::PopConvert(scalar_expr->Pop())->MdidType()),
+				CScalarCast::PopConvert(scalar_expr->Pop())->TypeModifier());
+		}
+		else
+		{
+			colref = col_factory->PcrCreate(
+				md_accessor->RetrieveType(
+					CScalarIdent::PopConvert(scalar_expr->Pop())->MdidType()),
+				CScalarIdent::PopConvert(scalar_expr->Pop())->TypeModifier());
+		}
+
+		scalar_expr->AddRef();
+		CExpression *proj_elem =
+			CUtils::PexprScalarProjectElement(mp, colref, scalar_expr);
+
+		proj_elems->Append(proj_elem);
+	}
+	return proj_elems;
+}
+
 //---------------------------------------------------------------------------
 //      @function:
 //              CXformUtils::FDeriveStatsBeforeXform

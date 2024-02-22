@@ -14,6 +14,7 @@
 #include "gpos/base.h"
 
 #include "gpopt/base/CDrvdProp.h"
+#include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CScalar.h"
 #include "naucrates/md/IMDId.h"
 
@@ -59,6 +60,8 @@ protected:
 	//  It is true if in the function, variadic arguments have been
 	//	combined into an array last argument
 	BOOL m_funcvariadic;
+
+	const CColRef *m_pcr;
 
 private:
 public:
@@ -145,6 +148,23 @@ public:
 
 	// the type of the scalar expression
 	IMDId *MdidType() const override;
+
+	// accessor
+	const CColRef *
+	Pcr()
+	{
+		if (nullptr == m_pcr)
+		{
+			const IMDType *pmdtype =
+				COptCtxt::PoctxtFromTLS()->Pmda()->RetrieveType(MdidType());
+			//CName name(PstrFunc());
+			CWStringConst unnamed_col(GPOS_WSZ_LIT("?column?"));
+			CName name(&unnamed_col);
+			m_pcr = COptCtxt::PoctxtFromTLS()->Pcf()->PcrCreate(
+				pmdtype, TypeModifier(), name);
+		}
+		return m_pcr;
+	}
 
 	// function stability
 	IMDFunction::EFuncStbl EfsGetFunctionStability() const;

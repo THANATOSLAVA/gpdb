@@ -174,6 +174,21 @@ CScalarIdent::FCastedScId(CExpression *pexpr, CColRef *colref)
 	return colref == pScIdent->Pcr();
 }
 
+BOOL
+CScalarIdent::FFuncScId(CExpression *pexpr)
+{
+	GPOS_ASSERT(nullptr != pexpr);
+
+	if (COperator::EopScalarFunc == pexpr->Pop()->Eopid())
+	{
+		if (COperator::EopScalarIdent == (*pexpr)[0]->Pop()->Eopid())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
 //---------------------------------------------------------------------------
 //	@function:
 //		CScalarIdent::FAllowedFuncScId
