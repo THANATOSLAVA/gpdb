@@ -49,6 +49,7 @@
 #include "gpopt/operators/CPredicateUtils.h"
 #include "gpopt/operators/CScalarCmp.h"
 #include "gpopt/operators/CScalarNAryJoinPredList.h"
+#include "gpopt/operators/CScalarParam.h"
 #include "gpopt/operators/CScalarProjectElement.h"
 #include "gpopt/operators/CScalarProjectList.h"
 #include "gpopt/operators/CScalarSubquery.h"
@@ -3300,6 +3301,66 @@ CExpressionPreprocessor::ConvertSplitUpdateToInPlaceUpdate(CMemoryPool *mp,
 	return pexpr;
 }
 
+CExpression *
+CExpressionPreprocessor::PexprReplaceFuncWithParam(CMemoryPool *mp,
+												   CExpression *pexpr,
+												   CExpressionArray *sirv_funcs)
+{
+	// protect against stack overflow during recursion
+	GPOS_CHECK_STACK_SIZE;
+
+	COperator *pop = pexpr->Pop();
+	if (COperator::EopScalarFunc == pop->Eopid() &&
+		CScalarFunc::PopConvert(pop)->IsSIRV())
+	{
+		CScalarFunc *func = CScalarFunc::PopConvert(pop);
+		// append sirv
+		pexpr->AddRef();
+		sirv_funcs->Append(pexpr);
+
+		// return scalar param
+		IMDId *param_type = func->MdidType();
+		param_type->AddRef();
+		return GPOS_NEW(mp) CExpression(
+			mp, GPOS_NEW(mp) CScalarParam(mp, sirv_funcs->Size() - 1,
+										  param_type, func->TypeModifier()));
+	}
+
+	// process children
+	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+	const ULONG ulChildren = pexpr->Arity();
+
+	for (ULONG ul = 0; ul < ulChildren; ul++)
+	{
+		CExpression *pexprChild =
+			PexprReplaceFuncWithParam(mp, (*pexpr)[ul], sirv_funcs);
+		pdrgpexpr->Append(pexprChild);
+	}
+
+	pop->AddRef();
+	return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexpr);
+}
+
+CExpression *
+CExpressionPreprocessor::ConvertSIRVToInitPlan(CMemoryPool *mp,
+											   CExpression *pexpr)
+{
+	CExpressionArray *sirv_funcs = GPOS_NEW(mp) CExpressionArray(mp);
+	CExpression *pexprFuncReplacedWithParams =
+		PexprReplaceFuncWithParam(mp, pexpr, sirv_funcs);
+	//CExpressionArray *sirv_func_selects = GPOS_NEW(mp) CExpressionArray(mp);
+
+	const ULONG sirv_count = sirv_funcs->Size();
+
+	for (ULONG ul = 0; ul < sirv_count; ul++)
+	{
+		CExpression *sirv_func = (*sirv_funcs)[ul];
+		sirv_func->DbgStr();
+	}
+
+	return pexprFuncReplacedWithParams;
+}
+
 // main driver, pre-processing of input logical expression
 CExpression *
 CExpressionPreprocessor::PexprPreprocess(
@@ -3518,11 +3579,17 @@ CExpressionPreprocessor::PexprPreprocess(
 	GPOS_CHECK_ABORT;
 	pexprTransposeSelectAndProject->Release();
 
-	// normalize expression again
-	CExpression *pexprNormalized2 =
-		CNormalizer::PexprNormalize(mp, pexprSplitUpdateToInplace);
+	// convert sirv to initplan
+	CExpression *pexprSIRVConvertedToInitPlan =
+		ConvertSIRVToInitPlan(mp, pexprSplitUpdateToInplace);
 	GPOS_CHECK_ABORT;
 	pexprSplitUpdateToInplace->Release();
+
+	// normalize expression again
+	CExpression *pexprNormalized2 =
+		CNormalizer::PexprNormalize(mp, pexprSIRVConvertedToInitPlan);
+	GPOS_CHECK_ABORT;
+	pexprSIRVConvertedToInitPlan->Release();
 
 	CPlanHint *planhint =
 		COptCtxt::PoctxtFromTLS()->GetOptimizerConfig()->GetPlanHint();

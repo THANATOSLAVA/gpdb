@@ -209,6 +209,13 @@ private:
 	static CExpression *PexprReorderScalarCmpChildren(CMemoryPool *mp,
 													  CExpression *pexpr);
 
+	static CExpression *PexprReplaceFuncWithParam(CMemoryPool *mp,
+												  CExpression *pexpr,
+												  CExpressionArray *sirv_funcs);
+
+	static CExpression *ConvertSIRVToInitPlan(CMemoryPool *mp,
+											  CExpression *pexpr);
+
 	static CExpression *PrunePartitions(CMemoryPool *mp, CExpression *expr);
 
 	static CConstraint *PcnstrFromChildPartition(const IMDRelation *partrel,
