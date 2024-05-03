@@ -317,6 +317,10 @@ public:
 											CExpression *pexprPrjList,
 											BOOL fNewComputedCol);
 
+	// generate a project expression of a scalar func
+	static CExpression *PexprLogicalProjectScalarFunc(CMemoryPool *mp,
+													  CExpression *pexpr);
+
 	// generate a sequence project expression
 	static CExpression *PexprLogicalSequenceProject(CMemoryPool *mp,
 													CDistributionSpec *pds,

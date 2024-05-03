@@ -3355,7 +3355,9 @@ CExpressionPreprocessor::ConvertSIRVToInitPlan(CMemoryPool *mp,
 	for (ULONG ul = 0; ul < sirv_count; ul++)
 	{
 		CExpression *sirv_func = (*sirv_funcs)[ul];
-		sirv_func->DbgStr();
+		CExpression *project_sirv_func =
+			CUtils::PexprLogicalProjectScalarFunc(mp, sirv_func);
+		project_sirv_func->DbgStr();
 	}
 
 	return pexprFuncReplacedWithParams;

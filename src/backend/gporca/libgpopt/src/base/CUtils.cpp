@@ -2265,6 +2265,42 @@ CUtils::PexprLogicalProject(CMemoryPool *mp, CExpression *pexpr,
 		CExpression(mp, GPOS_NEW(mp) CLogicalProject(mp), pexpr, pexprPrjList);
 }
 
+// generate a project expression of a scalar func
+//
+// input:
+// +--CScalarFunc
+//    +--CScalarConst
+//
+// output:
+// +--CLogicalProject
+//   |--CLogicalConstTableGet
+//   +--CScalarProjectList
+//      +--CScalarProjectElement
+//         +--CScalarFunc
+//            +--CScalarConst
+CExpression *
+CUtils::PexprLogicalProjectScalarFunc(CMemoryPool *mp, CExpression *pexpr)
+{
+	GPOS_ASSERT(COperator::EopScalarFunc == pexpr->Pop()->Eopid());
+
+	CScalarFunc *popScalarFunc = CScalarFunc::PopConvert(pexpr->Pop());
+	IMDId *mdid_type = popScalarFunc->MdidType();
+	INT type_modifier = popScalarFunc->TypeModifier();
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	const IMDType *pmdtype = md_accessor->RetrieveType(mdid_type);
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+	CColRef *pcrComputed = col_factory->PcrCreate(pmdtype, type_modifier);
+
+	CExpression *pexprPrjElem =
+		PexprScalarProjectElement(mp, pcrComputed, pexpr);
+
+	CExpression *pexprPrjList = GPOS_NEW(mp)
+		CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), pexprPrjElem);
+	CExpression *pexprCTG = CUtils::PexprLogicalCTGDummy(mp);
+	return PexprLogicalProject(mp, pexprCTG, pexprPrjList,
+							   false /* fNewComputedCol */);
+};
+
 // generate a sequence project expression
 CExpression *
 CUtils::PexprLogicalSequenceProject(CMemoryPool *mp, CDistributionSpec *pds,
