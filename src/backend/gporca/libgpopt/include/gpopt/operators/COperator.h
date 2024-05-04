@@ -128,6 +128,7 @@ public:
 		EopLogicalCTEAnchor,
 		EopLogicalCTEProducer,
 		EopLogicalCTEConsumer,
+		EopLogicalInitPlanAnchor,
 		EopLogicalSequenceProject,
 		EopLogicalInsert,
 		EopLogicalDelete,

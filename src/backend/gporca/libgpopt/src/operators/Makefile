@@ -23,6 +23,7 @@ OBJS        = CExpression.o \
               CLogicalCTEAnchor.o \
               CLogicalCTEConsumer.o \
               CLogicalCTEProducer.o \
+              CLogicalInitPlanAnchor.o \
               CLogicalConstTableGet.o \
               CLogicalDML.o \
               CLogicalDelete.o \

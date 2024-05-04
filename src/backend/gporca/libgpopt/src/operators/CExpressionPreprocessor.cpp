@@ -34,6 +34,7 @@
 #include "gpopt/operators/CLogicalConstTableGet.h"
 #include "gpopt/operators/CLogicalDynamicGet.h"
 #include "gpopt/operators/CLogicalGbAgg.h"
+#include "gpopt/operators/CLogicalInitPlanAnchor.h"
 #include "gpopt/operators/CLogicalInnerJoin.h"
 #include "gpopt/operators/CLogicalLimit.h"
 #include "gpopt/operators/CLogicalNAryJoin.h"
@@ -3348,7 +3349,14 @@ CExpressionPreprocessor::ConvertSIRVToInitPlan(CMemoryPool *mp,
 	CExpressionArray *sirv_funcs = GPOS_NEW(mp) CExpressionArray(mp);
 	CExpression *pexprFuncReplacedWithParams =
 		PexprReplaceFuncWithParam(mp, pexpr, sirv_funcs);
-	//CExpressionArray *sirv_func_selects = GPOS_NEW(mp) CExpressionArray(mp);
+
+	if (0 == sirv_funcs->Size())
+	{
+		sirv_funcs->Release();
+		return pexprFuncReplacedWithParams;
+	}
+
+	CExpressionArray *initplan_children = GPOS_NEW(mp) CExpressionArray(mp);
 
 	const ULONG sirv_count = sirv_funcs->Size();
 
@@ -3357,10 +3365,13 @@ CExpressionPreprocessor::ConvertSIRVToInitPlan(CMemoryPool *mp,
 		CExpression *sirv_func = (*sirv_funcs)[ul];
 		CExpression *project_sirv_func =
 			CUtils::PexprLogicalProjectScalarFunc(mp, sirv_func);
-		project_sirv_func->DbgStr();
+		initplan_children->Append(project_sirv_func);
 	}
+	initplan_children->Append(pexprFuncReplacedWithParams);
 
-	return pexprFuncReplacedWithParams;
+	CExpression *result = GPOS_NEW(mp) CExpression(
+		mp, GPOS_NEW(mp) CLogicalInitPlanAnchor(mp, 0), initplan_children);
+	return result;
 }
 
 // main driver, pre-processing of input logical expression
