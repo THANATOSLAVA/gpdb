@@ -210,6 +210,7 @@ public:
 		EopPhysicalFullMergeJoin,
 		EopPhysicalDynamicTableScan,
 		EopPhysicalSequence,
+		EopPhysicalInitPlanAnchor,
 		EopPhysicalTVF,
 		EopPhysicalCTEProducer,
 		EopPhysicalCTEConsumer,

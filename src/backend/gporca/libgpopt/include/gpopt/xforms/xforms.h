@@ -61,6 +61,7 @@
 #include "gpopt/xforms/CXformImplementDynamicBitmapTableGet.h"
 #include "gpopt/xforms/CXformImplementFullOuterMergeJoin.h"
 #include "gpopt/xforms/CXformImplementIndexApply.h"
+#include "gpopt/xforms/CXformImplementInitPlanAnchor.h"
 #include "gpopt/xforms/CXformImplementInnerCorrelatedApply.h"
 #include "gpopt/xforms/CXformImplementInnerJoin.h"
 #include "gpopt/xforms/CXformImplementLeftAntiSemiCorrelatedApply.h"

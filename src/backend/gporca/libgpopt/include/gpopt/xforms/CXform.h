@@ -236,6 +236,7 @@ public:
 		ExfLimit2IndexOnlyGet,
 		ExfFullOuterJoin2HashJoin,
 		ExfFullJoinCommutativity,
+		ExfImplementInitPlanAnchor,
 		ExfInvalid,
 		ExfSentinel = ExfInvalid
 	};

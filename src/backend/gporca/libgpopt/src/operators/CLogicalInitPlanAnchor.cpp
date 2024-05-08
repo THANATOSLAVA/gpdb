@@ -89,7 +89,7 @@ CLogicalInitPlanAnchor::DeriveKeyCollection(CMemoryPool *,	// mp
 //---------------------------------------------------------------------------
 CPartInfo *
 CLogicalInitPlanAnchor::DerivePartitionInfo(CMemoryPool *mp,
-									   CExpressionHandle &exprhdl) const
+											CExpressionHandle &exprhdl) const
 {
 	return PpartinfoDeriveCombine(mp, exprhdl);
 }
@@ -158,7 +158,7 @@ CXformSet *
 CLogicalInitPlanAnchor::PxfsCandidates(CMemoryPool *mp) const
 {
 	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
-	(void) xform_set->ExchangeSet(CXform::ExfLeftJoin2RightJoin);
+	(void) xform_set->ExchangeSet(CXform::ExfImplementInitPlanAnchor);
 	return xform_set;
 }
 
