@@ -668,7 +668,8 @@ CCostModelGPDB::CostSequence(CMemoryPool *mp, CExpressionHandle &exprhdl,
 {
 	GPOS_ASSERT(nullptr != pcmgpdb);
 	GPOS_ASSERT(nullptr != pci);
-	GPOS_ASSERT(COperator::EopPhysicalSequence == exprhdl.Pop()->Eopid());
+	GPOS_ASSERT(COperator::EopPhysicalSequence == exprhdl.Pop()->Eopid() ||
+				COperator::EopPhysicalInitPlanAnchor == exprhdl.Pop()->Eopid());
 
 	CCost costLocal = CCost(pci->NumRebinds() *
 							CostTupleProcessing(pci->Rows(), pci->Width(),
@@ -2489,6 +2490,7 @@ CCostModelGPDB::Cost(
 			return CostStreamAgg(m_mp, exprhdl, this, pci);
 		}
 
+		case COperator::EopPhysicalInitPlanAnchor:
 		case COperator::EopPhysicalSequence:
 		{
 			return CostSequence(m_mp, exprhdl, this, pci);
