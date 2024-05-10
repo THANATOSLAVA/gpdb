@@ -4025,7 +4025,7 @@ CUtils::PexprLogicalCTGDummy(CMemoryPool *mp)
 	// generate a bool datum
 	IDatumArray *pdrgpdatum = GPOS_NEW(mp) IDatumArray(mp);
 	IDatumBool *datum =
-		pmdtypebool->CreateBoolDatum(mp, false /*value*/, false /*is_null*/);
+		pmdtypebool->CreateBoolDatum(mp, true /*value*/, false /*is_null*/);
 	pdrgpdatum->Append(datum);
 	IDatum2dArray *pdrgpdrgpdatum = GPOS_NEW(mp) IDatum2dArray(mp);
 	pdrgpdrgpdatum->Append(pdrgpdatum);
