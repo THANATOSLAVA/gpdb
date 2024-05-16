@@ -799,8 +799,9 @@ CDXLOperatorFactory::MakeDXLSubPlan(CDXLMemoryManager *dxl_memory_manager,
 	// get the memory pool from the memory manager
 	CMemoryPool *mp = dxl_memory_manager->Pmp();
 
-	return GPOS_NEW(mp) CDXLScalarSubPlan(mp, mdid, dxl_colref_array,
-										  dxl_subplan_type, dxlnode_test_expr);
+	return GPOS_NEW(mp)
+		CDXLScalarSubPlan(mp, mdid, dxl_colref_array, dxl_subplan_type,
+						  dxlnode_test_expr, -1 /* setparam */);
 }
 
 //---------------------------------------------------------------------------

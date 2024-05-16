@@ -258,6 +258,11 @@ private:
 							CDistributionSpecArray *pdrgpdsBaseTables,
 							ULONG *pulNonGatherMotions, BOOL *pfDML);
 
+	CDXLNode *PdxlnInitPlanAnchor(CExpression *pexpr,
+								  CColRefArray *colref_array,
+								  CDistributionSpecArray *pdrgpdsBaseTables,
+								  ULONG *pulNonGatherMotions, BOOL *pfDML);
+
 	CDXLNode *PdxlnCorrelatedNLJoin(CExpression *pexprNLJ,
 									CColRefArray *colref_array,
 									CDistributionSpecArray *pdrgpdsBaseTables,
@@ -278,7 +283,7 @@ private:
 
 	// build a scalar DXL subplan node
 	void BuildDxlnSubPlan(CDXLNode *pdxlnRelChild, const CColRef *colref,
-						  CDXLColRefArray *dxl_colref_array);
+						  CDXLColRefArray *dxl_colref_array, INT setparam);
 
 	// build a boolean scalar dxl node with a subplan as its child
 	CDXLNode *PdxlnBooleanScalarWithSubPlan(CDXLNode *pdxlnRelChild,
@@ -668,7 +673,8 @@ private:
 							 CExpression *pexprInner,
 							 CDXLColRefArray *dxl_colref_array,
 							 CDistributionSpecArray *pdrgpdsBaseTables,
-							 ULONG *pulNonGatherMotions, BOOL *pfDML);
+							 ULONG *pulNonGatherMotions, BOOL *pfDML,
+							 INT setparam);
 
 	// helper to build subplans for quantified (ANY/ALL) subqueries
 	CDXLNode *PdxlnQuantifiedSubplan(CColRefArray *pdrgpcrInner,

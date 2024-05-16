@@ -63,6 +63,11 @@ private:
 	// test expression -- not null if quantified/existential subplan
 	CDXLNode *m_dxlnode_test_expr;
 
+	// Initplan subqueries have to set these params for parent plan
+	// Non-negative setparam id indicates the scalar subplan is
+	// constructed for an initplan
+	ULONG m_setparam;
+
 	// does test expression contain outer param
 	BOOL m_outer_param;
 
@@ -73,7 +78,8 @@ public:
 	CDXLScalarSubPlan(CMemoryPool *mp, IMDId *first_col_type_mdid,
 					  CDXLColRefArray *dxl_colref_array,
 					  EdxlSubPlanType dxl_subplan_type,
-					  CDXLNode *dxlnode_test_expr, BOOL outer_param = false);
+					  CDXLNode *dxlnode_test_expr, INT setparam,
+					  BOOL outer_param = false);
 
 	~CDXLScalarSubPlan() override;
 
@@ -115,6 +121,12 @@ public:
 	FOuterParam() const
 	{
 		return m_outer_param;
+	}
+
+	INT
+	GetSetParam() const
+	{
+		return m_setparam;
 	}
 
 	// serialize operator in DXL format
