@@ -147,6 +147,7 @@ enum Edxlopid
 	EdxlopPhysicalMaterialize,
 	EdxlopPhysicalDynamicForeignScan,
 	EdxlopPhysicalSequence,
+	EdxlopPhysicalInitPlanAnchor,
 	EdxlopPhysicalDynamicTableScan,
 	EdxlopPhysicalDynamicIndexScan,
 	EdxlopPhysicalDynamicIndexOnlyScan,

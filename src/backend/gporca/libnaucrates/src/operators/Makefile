@@ -81,6 +81,7 @@ OBJS        = CDXLColDescr.o \
               CDXLPhysicalResult.o \
               CDXLPhysicalRoutedDistributeMotion.o \
               CDXLPhysicalSequence.o \
+              CDXLPhysicalInitPlanAnchor.o \
               CDXLPhysicalSort.o \
               CDXLPhysicalSplit.o \
               CDXLPhysicalTVF.o \

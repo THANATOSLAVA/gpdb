@@ -112,6 +112,7 @@ enum Edxltoken
 	EdxltokenPhysicalMaterialize,
 	EdxltokenPhysicalDynamicForeignScan,
 	EdxltokenPhysicalSequence,
+	EdxltokenPhysicalInitPlanAnchor,
 	EdxltokenPhysicalDynamicTableScan,
 	EdxltokenPhysicalDynamicIndexScan,
 	EdxltokenPhysicalTVF,
