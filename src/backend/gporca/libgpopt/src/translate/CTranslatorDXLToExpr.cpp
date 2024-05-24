@@ -3500,8 +3500,21 @@ CTranslatorDXLToExpr::PexprScalarParam(const CDXLNode *pdxlnParam)
 
 	dxl_op->GetMDIdType()->AddRef();
 
+	CScalarParam::EParamKind param_kind;
+	switch (dxl_op->GetParamKind())
+	{
+		case DxlParamExtern:
+			param_kind = CScalarParam::ParamExtern;
+		case DxlParamExec:
+			param_kind = CScalarParam::ParamExec;
+		case DxlParamSublink:
+			param_kind = CScalarParam::ParamSublink;
+		case DxlParamMultiexpr:
+			param_kind = CScalarParam::ParamMultiexpr;
+	}
+
 	CScalarParam *scalar_param = GPOS_NEW(m_mp)
-		CScalarParam(m_mp, dxl_op->GetId(), dxl_op->GetMDIdType(),
+		CScalarParam(m_mp, param_kind, dxl_op->GetId(), dxl_op->GetMDIdType(),
 					 dxl_op->GetTypeModifier());
 
 	CExpression *pexpr = GPOS_NEW(m_mp) CExpression(m_mp, scalar_param);

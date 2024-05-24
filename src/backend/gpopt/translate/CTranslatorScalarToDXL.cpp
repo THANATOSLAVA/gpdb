@@ -281,7 +281,7 @@ CTranslatorScalarToDXL::TranslateParamToDXL(
 	const Param *param = (Param *) expr;
 
 	CDXLScalarParam *scalar_param = GPOS_NEW(m_mp) CDXLScalarParam(
-		m_mp, param->paramid,
+		m_mp, DxlParamExtern, param->paramid,
 		GPOS_NEW(m_mp) CMDIdGPDB(IMDId::EmdidGeneral, param->paramtype),
 		param->paramtypmod);
 

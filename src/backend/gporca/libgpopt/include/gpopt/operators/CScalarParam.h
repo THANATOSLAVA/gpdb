@@ -29,7 +29,19 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 class CScalarParam : public CScalar
 {
+public:
+	enum EParamKind
+	{
+		ParamExtern,
+		ParamExec,
+		ParamSublink,
+		ParamMultiexpr
+	};
+
 private:
+	// param kind
+	EParamKind m_param_kind;
+
 	// param id
 	const ULONG m_id;
 
@@ -43,8 +55,13 @@ public:
 	CScalarParam(const CScalarParam &) = delete;
 
 	// ctor
-	CScalarParam(CMemoryPool *mp, ULONG id, IMDId *type, INT type_modifier)
-		: CScalar(mp), m_id(id), m_type(type), m_type_modifier(type_modifier)
+	CScalarParam(CMemoryPool *mp, EParamKind param_kind, ULONG id, IMDId *type,
+				 INT type_modifier)
+		: CScalar(mp),
+		  m_param_kind(param_kind),
+		  m_id(id),
+		  m_type(type),
+		  m_type_modifier(type_modifier)
 	{
 	}
 
@@ -67,6 +84,12 @@ public:
 
 	// operator specific hash function
 	ULONG HashValue() const override;
+
+	EParamKind
+	GetParamKind() const
+	{
+		return m_param_kind;
+	}
 
 	ULONG
 	Id() const

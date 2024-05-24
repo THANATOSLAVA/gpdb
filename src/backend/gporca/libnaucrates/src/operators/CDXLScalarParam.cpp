@@ -29,9 +29,10 @@ using namespace gpdxl;
 //		Constructor
 //
 //---------------------------------------------------------------------------
-CDXLScalarParam::CDXLScalarParam(CMemoryPool *mp, ULONG id, IMDId *mdid_type,
-								 INT type_modifer)
+CDXLScalarParam::CDXLScalarParam(CMemoryPool *mp, EdxlParamKind param_kind,
+								 ULONG id, IMDId *mdid_type, INT type_modifer)
 	: CDXLScalar(mp),
+	  m_param_kind(param_kind),
 	  m_id(id),
 	  m_mdid_type(mdid_type),
 	  m_type_modifer(type_modifer)
@@ -79,6 +80,12 @@ const CWStringConst *
 CDXLScalarParam::GetOpNameStr() const
 {
 	return CDXLTokens::GetDXLTokenStr(EdxltokenScalarParam);
+}
+
+EdxlParamKind
+CDXLScalarParam::GetParamKind() const
+{
+	return m_param_kind;
 }
 
 ULONG

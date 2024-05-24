@@ -6399,9 +6399,23 @@ CTranslatorExprToDXL::PdxlnScParam(CExpression *pexprScParam)
 	CScalarParam *popScParam = CScalarParam::PopConvert(pexprScParam->Pop());
 	popScParam->MdidType()->AddRef();
 
+
+	EdxlParamKind param_kind;
+	switch (popScParam->GetParamKind())
+	{
+		case CScalarParam::ParamExtern:
+			param_kind = DxlParamExtern;
+		case CScalarParam::ParamExec:
+			param_kind = DxlParamExec;
+		case CScalarParam::ParamSublink:
+			param_kind = DxlParamSublink;
+		case CScalarParam::ParamMultiexpr:
+			param_kind = DxlParamMultiexpr;
+	}
+
 	CDXLScalarParam *dxl_scalar_param = GPOS_NEW(m_mp)
-		CDXLScalarParam(m_mp, popScParam->Id(), popScParam->MdidType(),
-						popScParam->TypeModifier());
+		CDXLScalarParam(m_mp, param_kind, popScParam->Id(),
+						popScParam->MdidType(), popScParam->TypeModifier());
 
 	// create the DXL node holding the scalar param operator
 	CDXLNode *dxlnode = GPOS_NEW(m_mp) CDXLNode(m_mp, dxl_scalar_param);

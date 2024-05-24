@@ -689,7 +689,8 @@ CDXLOperatorFactory::MakeDXLScalarParam(CDXLMemoryManager *dxl_memory_manager,
 		dxl_memory_manager, attrs, EdxltokenTypeMod, EdxltokenScalarParam, true,
 		default_type_modifier);
 
-	return GPOS_NEW(mp) CDXLScalarParam(mp, param_id, mdid_type, type_modifier);
+	return GPOS_NEW(mp)
+		CDXLScalarParam(mp, DxlParamExtern, param_id, mdid_type, type_modifier);
 }
 
 //---------------------------------------------------------------------------

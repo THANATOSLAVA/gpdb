@@ -21,6 +21,14 @@ namespace gpdxl
 {
 using namespace gpmd;
 
+enum EdxlParamKind
+{
+	DxlParamExtern,
+	DxlParamExec,
+	DxlParamSublink,
+	DxlParamMultiexpr
+};
+
 //---------------------------------------------------------------------------
 //	@class:
 //		CDXLScalarParam
@@ -32,6 +40,9 @@ using namespace gpmd;
 class CDXLScalarParam : public CDXLScalar
 {
 private:
+	// param_kind
+	EdxlParamKind m_param_kind;
+
 	// param id
 	ULONG m_id;
 
@@ -45,7 +56,7 @@ public:
 	CDXLScalarParam(CDXLScalarParam &) = delete;
 
 	// ctor/dtor
-	CDXLScalarParam(CMemoryPool *, ULONG, IMDId *, INT);
+	CDXLScalarParam(CMemoryPool *, EdxlParamKind, ULONG, IMDId *, INT);
 
 	~CDXLScalarParam() override;
 
@@ -56,6 +67,8 @@ public:
 	const CWStringConst *GetOpNameStr() const override;
 
 	// accessors
+	EdxlParamKind GetParamKind() const;
+
 	ULONG GetId() const;
 
 	IMDId *GetMDIdType() const;

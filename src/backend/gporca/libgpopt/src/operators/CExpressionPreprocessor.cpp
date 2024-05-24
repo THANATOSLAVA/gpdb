@@ -3323,8 +3323,9 @@ CExpressionPreprocessor::PexprReplaceFuncWithParam(CMemoryPool *mp,
 		IMDId *param_type = func->MdidType();
 		param_type->AddRef();
 		return GPOS_NEW(mp) CExpression(
-			mp, GPOS_NEW(mp) CScalarParam(mp, sirv_funcs->Size() - 1,
-										  param_type, func->TypeModifier()));
+			mp, GPOS_NEW(mp) CScalarParam(mp, CScalarParam::ParamExec,
+										  sirv_funcs->Size() - 1, param_type,
+										  func->TypeModifier()));
 	}
 
 	// process children

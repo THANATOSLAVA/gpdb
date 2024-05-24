@@ -448,7 +448,18 @@ CTranslatorDXLToScalar::TranslateDXLScalarParamToScalar(
 	Param *param = MakeNode(Param);
 	// Hardcoded to PARAM_EXTERN, as only PARAM_EXTERN can be passed in from the query.
 	// PARAM_EXEC is created by other operators (joins, subqueries, etc.) for subplans in the plan output
-	param->paramkind = PARAM_EXTERN;
+
+	switch (scalar_param_dxl->GetParamKind())
+	{
+		case DxlParamExtern:
+			param->paramkind = PARAM_EXTERN;
+		case DxlParamExec:
+			param->paramkind = PARAM_EXEC;
+		case DxlParamSublink:
+			param->paramkind = PARAM_SUBLINK;
+		case DxlParamMultiexpr:
+			param->paramkind = PARAM_MULTIEXPR;
+	}
 	param->paramid = scalar_param_dxl->GetId();
 	param->paramtype =
 		CMDIdGPDB::CastMdid(scalar_param_dxl->GetMDIdType())->Oid();
