@@ -817,6 +817,10 @@ Expr *
 CTranslatorDXLToScalar::TranslateDXLScalarSubplanToScalar(
 	const CDXLNode *scalar_subplan_node, CMappingColIdVar *colid_var)
 {
+	GPOS_ASSERT(nullptr != scalar_subplan_node);
+	GPOS_ASSERT(EdxlopScalarSubPlan ==
+				scalar_subplan_node->GetOperator()->GetDXLOperator());
+
 	CDXLTranslateContext *output_context =
 		(dynamic_cast<CMappingColIdVarPlStmt *>(colid_var))->GetOutputContext();
 
@@ -869,14 +873,10 @@ CTranslatorDXLToScalar::TranslateDXLScalarSubplanToScalar(
 		}
 	}
 
+	GPOS_ASSERT(1 == scalar_subplan_node->Arity());
 	CDXLNode *child_dxl = (*scalar_subplan_node)[0];
 	GPOS_ASSERT(EdxloptypePhysical ==
 				child_dxl->GetOperator()->GetDXLOperatorType());
-
-	GPOS_ASSERT(nullptr != scalar_subplan_node);
-	GPOS_ASSERT(EdxlopScalarSubPlan ==
-				scalar_subplan_node->GetOperator()->GetDXLOperator());
-	GPOS_ASSERT(1 == scalar_subplan_node->Arity());
 
 	// generate the child plan,
 	// Translate DXL->PlStmt translator to handle subplan's relational children
@@ -895,10 +895,11 @@ CTranslatorDXLToScalar::TranslateDXLScalarSubplanToScalar(
 				1 <= gpdb::ListLength(plan_child->targetlist));
 
 	// translate subplan and set test expression
-	SubPlan *subplan =
-		TranslateSubplanFromChildPlan(plan_child, slink, dxl_to_plstmt_ctxt);
+	SubPlan *subplan = BuildSubplan(plan_child, dxl_to_plstmt_ctxt);
+	subplan->subLinkType = slink;
 	subplan->testexpr = (Node *) test_expr;
 	subplan->paramIds = param_ids;
+	subplan->is_initplan = false;
 
 	// translate other subplan params
 	TranslateSubplanParams(subplan, &subplan_translate_ctxt, outer_refs,
@@ -915,6 +916,75 @@ CTranslatorDXLToScalar::TranslateDXLScalarSubplanToScalar(
 
 	return (Expr *) subplan;
 }
+
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorDXLToScalar::TranslateDXLScalarSubplanToInitPlan
+//
+//	@doc:
+//		Translates a DXL scalar SubPlan into a GPDB InitPlan node
+//
+//---------------------------------------------------------------------------
+Expr *
+CTranslatorDXLToScalar::TranslateDXLScalarSubplanToInitPlan(
+	const CDXLNode *scalar_subplan_node,
+	CContextDXLToPlStmt *dxl_to_plstmt_ctxt)
+{
+	GPOS_ASSERT(nullptr != scalar_subplan_node);
+	GPOS_ASSERT(EdxlopScalarSubPlan ==
+				scalar_subplan_node->GetOperator()->GetDXLOperator());
+	GPOS_ASSERT(1 == scalar_subplan_node->Arity());
+
+	CDXLNode *child_dxl = (*scalar_subplan_node)[0];
+	GPOS_ASSERT(EdxloptypePhysical ==
+				child_dxl->GetOperator()->GetDXLOperatorType());
+
+	// Create a new DXL->plstmt translator to handle subplan's relational children.
+	// Here we pass the parent's DXL->plstmt context to the constructor
+	// This is okay since DXL->plstmt translator's destructor doesn't wipe out the
+	// context. So even with the demise of the subplan's translator, the context
+	// will live on.
+	CTranslatorDXLToPlStmt dxl_to_plstmt_translator(
+		m_mp, m_md_accessor, dxl_to_plstmt_ctxt, m_num_of_segments);
+	CDXLTranslationContextArray *prev_siblings_ctxt_arr =
+		GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
+
+	// SIRV can be run as InitPlan because SIRV can be executed independent
+	// of the main query. That is, SIRV contains no outer references.
+	// Therefore, we apply a fresh output context to the initplan.
+	CDXLTranslateContext initplan_output_context(
+		m_mp, false /* is_child_agg_node */, (Query *) nullptr /* query */);
+	Plan *sirv_plan = dxl_to_plstmt_translator.TranslateDXLOperatorToPlan(
+		child_dxl, &initplan_output_context, prev_siblings_ctxt_arr);
+	prev_siblings_ctxt_arr->Release();
+
+	GPOS_ASSERT(nullptr != sirv_plan->targetlist &&
+				1 <= gpdb::ListLength(sirv_plan->targetlist));
+
+	// construct subplan
+	SubPlan *subplan = BuildSubplan(sirv_plan, dxl_to_plstmt_ctxt);
+
+	// ORCA only uses InitPlan is for sirv optimization
+	// In preprocessing, we replace `sirv()` in the query with
+	// `select sirv()`, which is the syntax for SELECT with a
+	// single targetlist item
+	subplan->subLinkType = EXPR_SUBLINK;
+
+	subplan->testexpr = nullptr;
+	subplan->paramIds = NIL;
+	subplan->useHashTable = false;
+	subplan->is_initplan = true;
+	subplan->parParam = NIL;
+	subplan->args = NIL;
+
+	subplan->setParam = list_make1_int(
+		CDXLScalarSubPlan::Cast(scalar_subplan_node->GetOperator())
+			->GetSetParam());
+	return (Expr *) subplan;
+}
+
+
 
 //---------------------------------------------------------------------------
 //      @function:
@@ -1147,32 +1217,37 @@ CTranslatorDXLToScalar::TranslateSubplanParams(
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorDXLToScalar::TranslateSubplanFromChildPlan
+//		CTranslatorDXLToScalar::BuildSubplan
 //
 //	@doc:
 //		add child plan to translation context, and build a subplan from it
 //
 //---------------------------------------------------------------------------
 SubPlan *
-CTranslatorDXLToScalar::TranslateSubplanFromChildPlan(
-	Plan *plan, SubLinkType slink, CContextDXLToPlStmt *dxl_to_plstmt_ctxt)
+CTranslatorDXLToScalar::BuildSubplan(Plan *plan,
+									 CContextDXLToPlStmt *dxl_to_plstmt_ctxt)
 {
 	dxl_to_plstmt_ctxt->AddSubplan(plan);
 
 	SubPlan *subplan = MakeNode(SubPlan);
+	// subplan->subLinkType assigned by caller function
+	// subplan->testexpr assigned by caller function
+	// subplan->paramIds assigned by caller function
+
+	// plan id is 1-indexed
 	subplan->plan_id =
 		gpdb::ListLength(dxl_to_plstmt_ctxt->GetSubplanEntriesList());
 	subplan->plan_name = GetSubplanAlias(subplan->plan_id);
-	subplan->is_initplan = false;
 	subplan->firstColType = gpdb::ExprType(
 		(Node *) ((TargetEntry *) gpdb::ListNth(plan->targetlist, 0))->expr);
+	subplan->firstColTypmod = -1;
 	// GPDB_91_MERGE_FIXME: collation
 	subplan->firstColCollation = gpdb::TypeCollation(subplan->firstColType);
-	subplan->firstColTypmod = -1;
-	subplan->subLinkType = slink;
-	subplan->is_multirow = false;
+	// subplan->useHashTable assigned by caller function
 	subplan->unknownEqFalse = false;
-
+	// subplan->is_initplan assigned by caller function
+	subplan->is_multirow = false;
+	// subplan->setParam assigned by caller function
 	return subplan;
 }
 

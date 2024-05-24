@@ -368,6 +368,13 @@ private:
 			ctxt_translation_prev_siblings	// translation contexts of previous siblings
 	);
 
+	Plan *TranslateDXLInitPlanAnchor(
+		const CDXLNode *initplan_anchor_dxl,
+		CDXLTranslateContext *output_context,
+		CDXLTranslationContextArray *
+			ctxt_translation_prev_siblings	// translation contexts of previous siblings
+	);
+
 	// translate a dynamic table scan operator
 	Plan *TranslateDXLDynTblScan(
 		const CDXLNode *dyn_tbl_scan_dxlnode,

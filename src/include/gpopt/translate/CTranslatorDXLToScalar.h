@@ -144,13 +144,12 @@ private:
 		const CDXLNode *scalar_func_expr_node, CMappingColIdVar *colid_var);
 
 	// return a GPDB subplan from a DXL subplan
-	Expr *TranslateDXLScalarSubplanToScalar(
-		const CDXLNode *scalar_sub_plan_node, CMappingColIdVar *colid_var);
+	Expr *TranslateDXLScalarSubplanToScalar(const CDXLNode *scalar_subplan_node,
+											CMappingColIdVar *colid_var);
 
 	// build subplan node
-	SubPlan *TranslateSubplanFromChildPlan(
-		Plan *plan_child, SubLinkType slink,
-		CContextDXLToPlStmt *dxl_to_plstmt_ctxt);
+	SubPlan *BuildSubplan(Plan *plan_child,
+						  CContextDXLToPlStmt *dxl_to_plstmt_ctxt);
 
 	// translate subplan test expression
 	Expr *TranslateDXLSubplanTestExprToScalar(CDXLNode *test_expr_node,
@@ -279,6 +278,10 @@ public:
 
 	// translate a DXL datum into GPDB const expression
 	Expr *TranslateDXLDatumToScalar(CDXLDatum *datum_dxl);
+
+	Expr *TranslateDXLScalarSubplanToInitPlan(
+		const CDXLNode *scalar_subplan_node,
+		CContextDXLToPlStmt *dxl_to_plstmt_ctxt);
 };
 }  // namespace gpdxl
 #endif	// !GPDXL_CTranslatorDXLToScalar_H

@@ -444,6 +444,12 @@ CTranslatorDXLToPlStmt::TranslateDXLOperatorToPlan(
 										ctxt_translation_prev_siblings);
 			break;
 		}
+		case EdxlopPhysicalInitPlanAnchor:
+		{
+			plan = TranslateDXLInitPlanAnchor(dxlnode, output_context,
+											  ctxt_translation_prev_siblings);
+			break;
+		}
 		case EdxlopPhysicalDynamicTableScan:
 		{
 			plan = TranslateDXLDynTblScan(dxlnode, output_context,
@@ -4218,6 +4224,37 @@ CTranslatorDXLToPlStmt::TranslateDXLSequence(
 	child_contexts->Release();
 
 	return (Plan *) psequence;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorDXLToPlStmt::TranslateDXLInitPlanAnchor
+//
+//	@doc:
+//		Translate DXL InitPlan Anchor node
+//
+//---------------------------------------------------------------------------
+Plan *
+CTranslatorDXLToPlStmt::TranslateDXLInitPlanAnchor(
+	const CDXLNode *initplan_anchor_dxl, CDXLTranslateContext *output_context,
+	CDXLTranslationContextArray *ctxt_translation_prev_siblings)
+{
+	CDXLNode *main_plan_dxl = (*initplan_anchor_dxl)[1];
+	Plan *main_plan = TranslateDXLOperatorToPlan(
+		main_plan_dxl, output_context, ctxt_translation_prev_siblings);
+	ULONG arity = initplan_anchor_dxl->Arity();
+
+	for (ULONG ul = 2; ul < arity; ul++)
+	{
+		CDXLNode *sirv_dxl = (*initplan_anchor_dxl)[ul];
+
+		Expr *subplan =
+			m_translator_dxl_to_scalar->TranslateDXLScalarSubplanToInitPlan(
+				sirv_dxl, m_dxl_to_plstmt_context);
+
+		main_plan->initPlan = gpdb::LAppend(main_plan->initPlan, subplan);
+	}
+	return main_plan;
 }
 
 //---------------------------------------------------------------------------
